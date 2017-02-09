@@ -43,6 +43,7 @@ import org.pentaho.platform.engine.services.connection.datasource.dbcp.PooledDat
 import org.pentaho.platform.plugin.services.connections.sql.SQLConnection;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.util.Collections;
 import java.util.List;
 
@@ -76,8 +77,11 @@ public class ConnectionServiceImplTest {
 
   private final PooledDatasourceHelper pdh = mock( PooledDatasourceHelper.class );
   
+  private final DatabaseMetaData dmd = mock( DatabaseMetaData.class );
+  
   @Before
-  public void setUp() throws ConnectionServiceException, ObjectFactoryException, DBDatasourceServiceException {
+  public void setUp() throws ConnectionServiceException, ObjectFactoryException, DBDatasourceServiceException, java.sql.SQLException {
+    doReturn(dmd).when(nativeConnection).getMetaData();
     doReturn( nativeConnection ).when( sqlConnection ).getNativeConnection();
     doReturn( SimpleDataAccessPermissionHandler.class.getName() ).when( loader ).getPluginSetting( this.anyClass(), anyString(), anyString() );
 
@@ -105,6 +109,7 @@ public class ConnectionServiceImplTest {
 
     doReturn( databaseType ).when( mockDBConnection ).getDatabaseType();
     doReturn( CONN_NAME ).when( mockDBConnection ).getName();
+    doReturn( CONN_NAME ).when( mockDBConnection ).getDatabaseName();
     doNothing().when( mockDBConnection ).setPassword( anyString() );
 
     connectionServiceImpl = spy( new ConnectionServiceImpl() );
@@ -274,7 +279,11 @@ public class ConnectionServiceImplTest {
   @Test
   public void testAddConnection() throws Exception {
     doNothing().when( connectionServiceImpl ).ensureDataAccessPermission();
+    doReturn( DatabaseAccessType.NATIVE ).when( mockDBConnection ).getAccessType();
     assertTrue( connectionServiceImpl.addConnection( mockDBConnection ) );
+    doReturn( DatabaseAccessType.JNDI ).when( mockDBConnection ).getAccessType();
+    assertTrue( connectionServiceImpl.addConnection( mockDBConnection ) );
+    verify( mockDBConnection ).setUsername( anyString() );
   }
 
   @Test
@@ -370,7 +379,11 @@ public class ConnectionServiceImplTest {
     doReturn( isPool ).when( mockDBConnection ).isUsingConnectionPool();
     assertTrue( connectionServiceImpl.testConnection( connection ) );
     verify( sqlConnection ).close();
-    verify( connection ).getName();
+    if ( DatabaseAccessType.JNDI == accessType ) {
+      verify( connection ).getDatabaseName();
+    } else {
+      verify( connection ).getName();
+    }
   }
 
   @Test

@@ -19,6 +19,10 @@ package org.pentaho.platform.dataaccess.datasource.wizard.service.impl;
 import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.Properties;
+
+import javax.sql.DataSource;
+import java.sql.DatabaseMetaData;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -169,6 +173,17 @@ public class ConnectionServiceImpl extends PentahoBase implements IConnectionSer
   public boolean addConnection( IDatabaseConnection connection ) throws ConnectionServiceException {
     ensureDataAccessPermission();
     try {
+      if ( connection.getAccessType().equals( DatabaseAccessType.JNDI ) ) {
+        IPentahoConnection pentahoConnection = null;
+        pentahoConnection = PentahoConnectionFactory
+          .getConnection( IPentahoConnection.SQL_DATASOURCE, connection.getDatabaseName(), null, this );
+        try {  
+          connection.setUsername((( (SQLConnection) pentahoConnection ).getNativeConnection().getMetaData().getUserName()));
+        } catch ( Exception e ) {
+          logger.warn( "Unable to get username from datasource: " + connection.getName() );
+        }
+      }
+
       datasourceMgmtSvc.createDatasource( connection );
       return true;
     } catch ( DuplicateDatasourceException duplicateDatasourceException ) {
@@ -276,7 +291,7 @@ public class ConnectionServiceImpl extends PentahoBase implements IConnectionSer
       try {
         if ( connection.getAccessType().equals( DatabaseAccessType.JNDI ) ) {
           pentahoConnection = PentahoConnectionFactory
-            .getConnection( IPentahoConnection.SQL_DATASOURCE, connection.getName(), null, this );
+            .getConnection( IPentahoConnection.SQL_DATASOURCE, connection.getDatabaseName(), null, this );
         } else {
           if ( connection.isUsingConnectionPool() ) {
             Properties props = new Properties();
