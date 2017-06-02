@@ -12,7 +12,7 @@
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU Lesser General Public License for more details.
  *
- * Copyright (c) 2002-2016 Pentaho Corporation..  All rights reserved.
+ * Copyright (c) 2002-2017 Pentaho Corporation..  All rights reserved.
  */
 
 package org.pentaho.platform.dataaccess.datasource.api;
@@ -23,6 +23,7 @@ import org.apache.commons.io.IOUtils;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -51,6 +52,7 @@ import org.pentaho.platform.security.policy.rolebased.actions.RepositoryCreateAc
 import org.pentaho.platform.security.policy.rolebased.actions.RepositoryReadAction;
 import org.pentaho.test.platform.engine.core.MicroPlatform;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -291,6 +293,15 @@ public class AnalysisServiceTest {
     putMondrianSchemaWithSchemaFileName( "" );
   }
 
+  @Test
+  public void testfASDF() throws Exception {
+    AnalysisService analysis = Mockito.spy( new AnalysisService() );
+    String xml = "<Schema name=\"Test4\"></Schema>";
+    InputStream schema = new ByteArrayInputStream( xml.getBytes() );
+    doReturn( new com.sun.xml.stream.ZephyrParserFactory() ).when( analysis ).getXMLInputFactory();
+    String domainId = analysis.getSchemaName( null, schema );
+    Assert.assertEquals( "Test4", domainId);
+  }
   private void putMondrianSchemaWithSchemaFileName( String fileName ) throws Exception {
     String params = "overwrite=true;retainInlineAnnotations=true";
     putMondrianSchemaWithSchemaFileName( fileName, params );
